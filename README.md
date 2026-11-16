@@ -1,4 +1,4 @@
-# Minimarket POS 1.0
+# AuSale 1.0
 
 Punto de venta para bodega: ventas por **unidad**, **peso** e **importe libre**, con pago en Efectivo, Yape o Plin.
 

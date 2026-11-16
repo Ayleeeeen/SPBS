@@ -339,3 +339,14 @@ async function renderSales() {
 }
 
 renderSale();
+
+/* Pantalla de presentación (solo una vez por sesión del navegador) */
+const splash = $('#splash');
+let seen = false;
+try { seen = sessionStorage.getItem('ausale-seen') === '1'; } catch {}
+if (seen) splash.remove();
+else $('#start').onclick = () => {
+  try { sessionStorage.setItem('ausale-seen', '1'); } catch {}
+  splash.classList.add('hide');
+  setTimeout(() => { splash.remove(); $('#barcode')?.focus(); }, 450);
+};
