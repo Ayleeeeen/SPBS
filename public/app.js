@@ -54,6 +54,75 @@ $('#nav').addEventListener('click', (e) => {
 setInterval(() => { $('#clock').textContent = new Date().toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' }); }, 1000);
 $('#clock').textContent = new Date().toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' });
 
+
+/* =====================================================
+   TICKET TÉRMICO
+   ===================================================== */
+const DEFAULT_CFG = { name: 'AuSale Bodega', ruc: '', address: '', phone: '', footer: '¡Gracias por su compra!', paper: '80', auto: true };
+function getCfg() { try { return { ...DEFAULT_CFG, ...JSON.parse(localStorage.getItem('ausale-ticket') || '{}') }; } catch { return { ...DEFAULT_CFG }; } }
+function saveCfg(c) { try { localStorage.setItem('ausale-ticket', JSON.stringify(c)); } catch {} }
+
+function ticketHtml(sale, cfg = getCfg(), extra = {}) {
+  const num = String(sale.id).padStart(6, '0');
+  const [date, time] = String(sale.created_at).split(' ');
+  const items = sale.items.map((i) => {
+    const calc = i.sale_mode === 'UNIT' ? `${i.quantity} x ${i.unit_price.toFixed(2)}`
+      : i.sale_mode === 'WEIGHT' ? `${i.quantity.toFixed(3)} kg x ${i.unit_price.toFixed(2)}` : 'Importe libre';
+    return `<div class="item"><div class="nm">${esc(i.name)}</div><div class="calc"><span>${calc}</span><span>${i.subtotal.toFixed(2)}</span></div></div>`;
+  }).join('');
+  const pays = sale.payments.map((p) => `<div class="row"><span>${METHOD[p.method]}</span><span>${p.amount.toFixed(2)}</span></div>`).join('');
+  const cash = extra.received ? `<div class="row"><span>Recibido</span><span>${extra.received.toFixed(2)}</span></div><div class="row"><span>Vuelto</span><span>${extra.change.toFixed(2)}</span></div>` : '';
+  return `<div class="ticket w${cfg.paper}">
+    <div class="c b big">${esc(cfg.name)}</div>
+    ${cfg.ruc ? `<div class="c">RUC ${esc(cfg.ruc)}</div>` : ''}${cfg.address ? `<div class="c">${esc(cfg.address)}</div>` : ''}${cfg.phone ? `<div class="c">Tel. ${esc(cfg.phone)}</div>` : ''}
+    <hr><div class="c b">TICKET DE VENTA N.° ${num}</div>
+    <div class="row"><span>Fecha: ${esc(date)}</span><span>Hora: ${esc((time || '').slice(0, 5))}</span></div>
+    ${sale.status === 'VOIDED' ? '<div class="c b">*** VENTA ANULADA ***</div>' : ''}
+    <hr>${items}<hr>
+    <div class="row b big"><span>TOTAL S/</span><span>${sale.total.toFixed(2)}</span></div>
+    <hr>${pays}${cash}
+    <hr><div class="c">${esc(cfg.footer)}</div>
+    <div class="c legal">Documento sin valor tributario</div></div>`;
+}
+
+function printTicket(html, paper) {
+  const f = document.createElement('iframe');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+  document.body.append(f);
+  const d = f.contentDocument;
+  d.open();
+  d.write(`<!doctype html><html><head><meta charset="utf-8"><title>Ticket</title>
+    <link rel="stylesheet" href="ticket.css"><style>@page{size:${paper === '58' ? '58mm' : '80mm'} auto;margin:0}html,body{margin:0;background:#fff}</style></head><body>${html}</body></html>`);
+  d.close();
+  f.onload = () => { f.contentWindow.focus(); f.contentWindow.print(); setTimeout(() => f.remove(), 2000); };
+}
+
+function showTicket(sale, extra = {}, { title = 'Ticket de venta', closeLabel = 'Cerrar' } = {}) {
+  const cfg = getCfg(); const html = ticketHtml(sale, cfg, extra);
+  const m = openModal({ title: `${title} N.° ${String(sale.id).padStart(6, '0')}`,
+    body: `<div class="ticket-preview">${html}</div>`,
+    actions: [{ label: closeLabel, cls: 'ghost' }, { label: '🖨 Imprimir', id: 'tprint', run: () => printTicket(html, cfg.paper) }] });
+  $('#tprint').focus();
+  return m;
+}
+
+function openTicketSettings() {
+  const c = getCfg();
+  const m = openModal({ title: 'Configurar ticket',
+    body: `<div class="field"><label>Nombre del negocio</label><input class="input" id="c-name" value="${esc(c.name)}"></div>
+    <div class="row2"><div class="field"><label>RUC (opcional)</label><input class="input" id="c-ruc" value="${esc(c.ruc)}"></div>
+    <div class="field"><label>Teléfono (opcional)</label><input class="input" id="c-phone" value="${esc(c.phone)}"></div></div>
+    <div class="field"><label>Dirección (opcional)</label><input class="input" id="c-addr" value="${esc(c.address)}"></div>
+    <div class="field"><label>Mensaje final</label><input class="input" id="c-foot" value="${esc(c.footer)}"></div>
+    <div class="row2"><div class="field"><label>Ancho del papel</label><select class="input" id="c-paper"><option value="80" ${c.paper === '80' ? 'selected' : ''}>80 mm</option><option value="58" ${c.paper === '58' ? 'selected' : ''}>58 mm</option></select></div>
+    <div class="field"><label>Al confirmar una venta</label><select class="input" id="c-auto"><option value="1" ${c.auto ? 'selected' : ''}>Mostrar ticket</option><option value="0" ${!c.auto ? 'selected' : ''}>No mostrar</option></select></div></div>`,
+    actions: [{ label: 'Cancelar', cls: 'ghost' }, { label: 'Guardar', run: () => {
+      saveCfg({ name: $('#c-name').value.trim() || DEFAULT_CFG.name, ruc: $('#c-ruc').value.trim(), phone: $('#c-phone').value.trim(),
+        address: $('#c-addr').value.trim(), footer: $('#c-foot').value.trim(), paper: $('#c-paper').value, auto: $('#c-auto').value === '1' });
+      m.close(); toast('Configuración guardada', 'ok');
+    } }] });
+}
+
 /* =====================================================
    VENTA
    ===================================================== */
@@ -211,9 +280,12 @@ function openPayment() {
     try {
       const items = cart.map((l) => ({ product_id: l.product.id, quantity: l.qty, amount: l.amount }));
       const sale = await api('/sales', { method: 'POST', body: { items, payments: [{ method, amount: total }] } });
+      const recv = method === 'CASH' ? Number($('#recv').value.replace(',', '.')) : 0;
+      const extra = recv >= total ? { received: recv, change: Math.round((recv - total) * 100) / 100 } : {};
       cart.length = 0; selected = -1; m.close(); drawCart();
       toast(`Venta #${sale.id} guardada — ${money(sale.total)} (${METHOD[method]})`, 'ok');
-      $('#barcode')?.focus();
+      if (getCfg().auto) showTicket(sale, extra, { title: 'Venta guardada · Ticket', closeLabel: 'Nueva venta' });
+      else $('#barcode')?.focus();
     } catch (e) { m.error(e.message); btn.disabled = false; }
   }
 }
@@ -310,7 +382,7 @@ async function renderPrices() {
    ===================================================== */
 async function renderSales() {
   const v = $('#view'); const t = todayStr();
-  v.innerHTML = `<div class="toolbar"><label>Desde <input type="date" class="input" id="d1" value="${t}"></label><label>Hasta <input type="date" class="input" id="d2" value="${t}"></label><button class="btn ghost" id="dtoday">Hoy</button></div><div id="rep"></div><div id="slist"></div>`;
+  v.innerHTML = `<div class="toolbar"><label>Desde <input type="date" class="input" id="d1" value="${t}"></label><label>Hasta <input type="date" class="input" id="d2" value="${t}"></label><button class="btn ghost" id="dtoday">Hoy</button><span class="grow"></span><button class="btn ghost" id="tcfg">⚙ Configurar ticket</button></div><div id="rep"></div><div id="slist"></div>`;
   const load = async () => {
     const qs = `from=${$('#d1').value}&to=${$('#d2').value}`;
     const [r, sales] = await Promise.all([api('/report?' + qs), api('/sales?' + qs)]);
@@ -322,11 +394,12 @@ async function renderSales() {
       sales.map((s) => `<tr class="${s.status === 'VOIDED' ? 'off' : ''}"><td>#${s.id}</td><td>${esc(s.created_at)}</td>
       <td>${s.payments.map((p) => `<span class="tag ${p.method}">${METHOD[p.method]}${s.payments.length > 1 ? ' ' + money(p.amount) : ''}</span>`).join(' ')}</td>
       <td>${s.status === 'VOIDED' ? '<span class="tag VOIDED">Anulada</span>' : 'Confirmada'}</td><td class="r"><b>${money(s.total)}</b></td>
-      <td class="actions"><button class="link" data-a="det" data-id="${s.id}">Detalle</button>${s.status === 'CONFIRMED' ? `<button class="link red" data-a="void" data-id="${s.id}">Anular</button>` : ''}</td></tr>
+      <td class="actions"><button class="link" data-a="det" data-id="${s.id}">Detalle</button><button class="link" data-a="tk" data-id="${s.id}">Ticket</button>${s.status === 'CONFIRMED' ? `<button class="link red" data-a="void" data-id="${s.id}">Anular</button>` : ''}</td></tr>
       <tr class="sale-detail" id="det-${s.id}" hidden><td colspan="6">${s.items.map((i) => `${esc(i.name)} — ${i.sale_mode === 'UNIT' ? i.quantity + ' u × ' + money(i.unit_price) : i.sale_mode === 'WEIGHT' ? i.quantity.toFixed(3) + ' kg × ' + money(i.unit_price) : 'importe libre'} = <b>${money(i.subtotal)}</b>`).join('<br>')}</td></tr>`).join('')
       || '<tr><td colspan="6" class="cart-empty">No hay ventas en este periodo</td></tr>'}</tbody></table>`;
     $('#slist').onclick = async (e) => {
       const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.a === 'tk') showTicket(sales.find((x) => x.id === +b.dataset.id), {}, { title: 'Reimpresión · Ticket' });
       if (b.dataset.a === 'det') { const r2 = $('#det-' + b.dataset.id); r2.hidden = !r2.hidden; }
       if (b.dataset.a === 'void' && confirm(`¿Anular la venta #${b.dataset.id}? El registro se conserva.`)) {
         try { await api(`/sales/${b.dataset.id}/void`, { method: 'POST' }); toast('Venta anulada', 'ok'); load(); } catch (err) { toast(err.message, 'error'); }
@@ -334,6 +407,7 @@ async function renderSales() {
     };
   };
   $('#d1').onchange = $('#d2').onchange = load;
+  $('#tcfg').onclick = openTicketSettings;
   $('#dtoday').onclick = () => { $('#d1').value = $('#d2').value = todayStr(); load(); };
   load();
 }

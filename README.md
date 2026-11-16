@@ -39,3 +39,10 @@ Dinero en céntimos y cantidades en milésimas (enteros, sin errores de coma flo
 ## Fuera del MVP
 
 Productos más vendidos, exportación a Excel, ventas por periodo con gráficos (P2/P3).
+
+## Ticket térmico
+
+Cada venta genera un ticket (80 mm o 58 mm) que se muestra tras confirmar y se imprime con el botón **Imprimir**.
+Se puede reimprimir desde *Ventas y reportes → Ticket*. Los datos del negocio (nombre, RUC, dirección, mensaje,
+ancho de papel) se editan en *Ventas y reportes → Configurar ticket* y se guardan en el navegador.
+Es un comprobante interno **sin valor tributario**; una boleta electrónica SUNAT requeriría integrar un facturador autorizado.

@@ -1,0 +1,14 @@
+/* Ticket para impresora térmica. Ancho imprimible: 80 mm papel ≈ 72 mm, 58 mm papel ≈ 48 mm */
+.ticket { --w: 72mm; width: var(--w); margin: 0 auto; background: #fff; color: #000; font: 12px/1.35 'Courier New', ui-monospace, monospace; padding: 2mm 0; }
+.ticket.w58 { --w: 48mm; font-size: 11px; }
+.ticket .c { text-align: center; }
+.ticket .b { font-weight: 700; }
+.ticket .big { font-size: 1.3em; }
+.ticket hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
+.ticket .row { display: flex; justify-content: space-between; gap: 6px; }
+.ticket .item { margin-bottom: 4px; }
+.ticket .item .nm { word-break: break-word; }
+.ticket .item .calc { display: flex; justify-content: space-between; padding-left: 8px; }
+.ticket .legal { font-size: .85em; margin-top: 6px; }
+.ticket-preview { background: #eceff8; padding: 14px; border-radius: 8px; max-height: 52vh; overflow: auto; }
+.ticket-preview .ticket { box-shadow: 0 2px 10px rgba(15,26,64,.2); padding: 8px 10px; width: calc(var(--w) + 20px); }
