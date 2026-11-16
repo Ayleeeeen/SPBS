@@ -1,0 +1,11 @@
+{
+  "name": "minimarket-pos",
+  "version": "1.0.0",
+  "description": "Minimarket POS 1.0 - punto de venta para bodega (unidad, peso, importe libre)",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=22.13" }
+}

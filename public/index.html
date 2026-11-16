@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minimarket POS</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">Bodega POS</div>
+    <nav id="nav">
+      <button data-view="sale" class="active">Venta</button>
+      <button data-view="products">Productos</button>
+      <button data-view="prices">Precios</button>
+      <button data-view="sales">Ventas y reportes</button>
+    </nav>
+    <div class="clock" id="clock"></div>
+  </header>
+  <main id="view"></main>
+</div>
+<div id="modal-root"></div>
+<div id="toast" class="toast" hidden></div>
+<script src="app.js" type="module"></script>
+</body>
+</html>
